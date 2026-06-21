@@ -1,0 +1,10 @@
+{
+  "name": "Cura MCP Server",
+  "id": "cura-mcp-plugin",
+  "author": "padicodeai-cloud",
+  "version": "0.1.0",
+  "description": "Local server exposing Cura to an MCP bridge. Loopback-only, token-authenticated, no telemetry.",
+  "api": 8,
+  "supported_sdk_versions": [8, 9],
+  "i18n_catalog": "cura-mcp"
+}

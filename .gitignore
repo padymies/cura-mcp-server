@@ -1,0 +1,40 @@
+# --- Project-specific ---
+# Internal build specs: local reference for the implementation agent, never shipped.
+specs/
+docs/
+# Local auth token written by the Cura plugin at runtime (see SECURITY).
+*.cura-mcp-token
+.cura-mcp/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+
+# --- Editors / OS ---
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# --- Logs / local artifacts ---
+*.log
+*.gcode
+*.stl
+*.3mf
+!examples/**/*.stl
+!examples/**/*.3mf

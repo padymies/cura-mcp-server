@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "cura": {
+      "command": "python",
+      "args": ["-m", "cura_mcp.server"],
+      "env": {
+        "CURA_MCP_PORT": "8765"
+      }
+    }
+  }
+}
