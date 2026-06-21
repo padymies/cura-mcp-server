@@ -15,20 +15,33 @@ from .tools import (
     clear_plate,
     duplicate_model,
     estimates,
+    export_gcode,
     export_model,
     get_machine_info,
+    get_setting,
     get_snapshot,
+    list_machines,
+    list_materials,
     list_models,
     load_model,
     mirror_model,
     move_model,
     orientation,
     remove_model,
+    reset_setting,
     rotate,
     scale_model,
     scale_to_fit,
     select_model,
+    set_adhesion,
+    set_infill_density,
+    set_layer_height,
+    set_quality,
+    set_setting,
+    set_supports,
     status,
+    switch_machine,
+    switch_material,
 )
 from .tools import slice as slice_tool
 
@@ -62,6 +75,23 @@ def build_server() -> FastMCP:
         get_machine_info,
         get_snapshot,
         export_model,
+        # Tier 2 — settings
+        get_setting,
+        set_setting,
+        reset_setting,
+        # Tier 2 — curated writers
+        set_layer_height,
+        set_infill_density,
+        set_supports,
+        set_adhesion,
+        set_quality,
+        # Tier 2 — profiles
+        list_machines,
+        switch_machine,
+        list_materials,
+        switch_material,
+        # Tier 2 — export gcode
+        export_gcode,
     )
     for module in modules:
         module.register(mcp, client, settings)

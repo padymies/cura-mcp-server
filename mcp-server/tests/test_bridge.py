@@ -6,8 +6,12 @@ import pytest
 from cura_mcp.errors import (
     CuraMcpError,
     CuraNotRunning,
+    InvalidSettingValue,
     NodeNotFound,
+    PerExtruderUnsupported,
     SliceFailed,
+    UnknownProfile,
+    UnknownSetting,
     from_plugin_code,
 )
 from cura_mcp.models import (
@@ -16,14 +20,22 @@ from cura_mcp.models import (
     ClearPlateOutput,
     DuplicateModelOutput,
     EstimatesOutput,
+    ExportGcodeOutput,
     ExportOutput,
     ExtruderEstimate,
+    ListMachinesOutput,
+    ListMaterialsOutput,
     ListModelsOutput,
     LoadModelInput,
+    MachineEntry,
     MachineInfoOutput,
+    MaterialEntry,
     ModelInfo,
     PluginResponse,
+    ProfileSwitchOutput,
     RotateInput,
+    SettingOutput,
+    SupportsOutput,
     TransformOutput,
 )
 from cura_mcp.server import build_server
@@ -122,7 +134,37 @@ def test_machine_info_and_export_shapes() -> None:
     assert out.models == 2
 
 
-async def test_server_registers_tier1_tools() -> None:
+def test_setting_output_shape() -> None:
+    out = SettingOutput(key="layer_height", value=0.2, type="float", unit="mm")
+    assert out.value == 0.2 and out.unit == "mm"
+    # value is polymorphic
+    assert SettingOutput(key="adhesion_type", value="brim", type="enum").value == "brim"
+    assert SettingOutput(key="support_enable", value=True, type="bool").value is True
+
+
+def test_tier2_error_roundtrips() -> None:
+    assert isinstance(from_plugin_code("unknown_setting", "x"), UnknownSetting)
+    assert isinstance(from_plugin_code("invalid_setting_value", "x"), InvalidSettingValue)
+    assert isinstance(from_plugin_code("per_extruder_unsupported", "x"), PerExtruderUnsupported)
+    assert isinstance(from_plugin_code("unknown_profile", "x"), UnknownProfile)
+
+
+def test_tier2_profile_and_export_shapes() -> None:
+    machines = ListMachinesOutput(
+        machines=[MachineEntry(id="ender3", name="Ender 3 S1", active=True)]
+    )
+    assert machines.machines[0].active is True
+    mats = ListMaterialsOutput(
+        materials=[MaterialEntry(id="generic_pla", name="PLA", brand="Generic", active=True)],
+        active="generic_pla",
+    )
+    assert mats.active == "generic_pla"
+    assert ProfileSwitchOutput(id="generic_pla", name="PLA", active=True).active is True
+    assert SupportsOutput(support_enable=True, support_type="everywhere").support_type
+    assert ExportGcodeOutput(path="C:/Users/x/out.gcode", lines=1234).lines == 1234
+
+
+async def test_server_registers_tier1_and_tier2_tools() -> None:
     mcp = build_server()
     names = {tool.name for tool in await mcp.list_tools()}
     assert {
@@ -139,4 +181,17 @@ async def test_server_registers_tier1_tools() -> None:
         "get_machine_info",
         "get_snapshot",
         "export_model",
+        "get_setting",
+        "set_setting",
+        "reset_setting",
+        "set_layer_height",
+        "set_infill_density",
+        "set_supports",
+        "set_adhesion",
+        "set_quality",
+        "list_machines",
+        "switch_machine",
+        "list_materials",
+        "switch_material",
+        "export_gcode",
     } <= names

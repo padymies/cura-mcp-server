@@ -156,3 +156,56 @@ class ExportOutput(BaseModel):
     path: str = Field(..., description="Absolute path the mesh was written to")
     format: str
     models: int = Field(..., description="Number of models written into the file")
+
+
+# --- Tier 2: settings -----------------------------------------------------
+
+class SettingOutput(BaseModel):
+    """A setting's key + its resolved value (and type/unit when known)."""
+
+    key: str
+    value: Any = Field(default=None, description="Resolved value (float/int/bool/str)")
+    type: str | None = None
+    unit: str | None = None
+
+
+class SupportsOutput(BaseModel):
+    support_enable: bool
+    support_type: str | None = Field(default=None, description="buildplate | everywhere")
+
+
+# --- Tier 2: profiles -----------------------------------------------------
+
+class MachineEntry(BaseModel):
+    id: str
+    name: str
+    active: bool = False
+
+
+class ListMachinesOutput(BaseModel):
+    machines: list[MachineEntry]
+
+
+class MaterialEntry(BaseModel):
+    id: str
+    name: str
+    brand: str | None = None
+    active: bool = False
+
+
+class ListMaterialsOutput(BaseModel):
+    materials: list[MaterialEntry]
+    active: str | None = None
+
+
+class ProfileSwitchOutput(BaseModel):
+    id: str
+    name: str
+    active: bool
+
+
+# --- Tier 2: export gcode -------------------------------------------------
+
+class ExportGcodeOutput(BaseModel):
+    path: str = Field(..., description="Absolute path the G-code was written to")
+    lines: int = Field(..., description="Number of G-code lines written")

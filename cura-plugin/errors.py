@@ -21,6 +21,22 @@ class ExportFailed(PluginError):
     code = "export_failed"
 
 
+class UnknownSetting(PluginError):
+    code = "unknown_setting"
+
+
+class InvalidSettingValue(PluginError):
+    code = "invalid_setting_value"
+
+
+class PerExtruderUnsupported(PluginError):
+    code = "per_extruder_unsupported"
+
+
+class UnknownProfile(PluginError):
+    code = "unknown_profile"
+
+
 class LoadFailed(PluginError):
     code = "load_failed"
 

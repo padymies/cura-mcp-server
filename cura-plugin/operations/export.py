@@ -18,7 +18,7 @@ from .load import _allowed_roots, _is_within
 ALLOWED_EXPORT_EXTENSIONS = {".stl", ".3mf"}
 
 
-def _validate_output_path(raw: str) -> Path:
+def _validate_output_path(raw: str, allowed_exts: set[str] = ALLOWED_EXPORT_EXTENSIONS) -> Path:
     if not raw:
         raise InvalidPath("Empty path.")
     path = Path(raw)
@@ -26,9 +26,9 @@ def _validate_output_path(raw: str) -> Path:
         raise InvalidPath("Path traversal is not allowed.")
     # Output file may not exist yet — normalise without requiring it.
     resolved = Path(os.path.abspath(path.expanduser()))
-    if resolved.suffix.lower() not in ALLOWED_EXPORT_EXTENSIONS:
+    if resolved.suffix.lower() not in allowed_exts:
         raise InvalidPath(
-            f"Unsupported extension '{resolved.suffix}'. Allowed: {sorted(ALLOWED_EXPORT_EXTENSIONS)}."
+            f"Unsupported extension '{resolved.suffix}'. Allowed: {sorted(allowed_exts)}."
         )
     if not resolved.parent.exists():
         raise InvalidPath(f"Target directory does not exist: {resolved.parent}")

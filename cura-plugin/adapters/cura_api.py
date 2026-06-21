@@ -23,7 +23,14 @@ import enum
 import math
 from typing import Callable
 
-from ..errors import ExportFailed, NodeNotFound
+from ..errors import (
+    ExportFailed,
+    InvalidSettingValue,
+    NodeNotFound,
+    PerExtruderUnsupported,
+    UnknownProfile,
+    UnknownSetting,
+)
 
 # NOTE: import Cura/Uranium lazily inside functions (or guarded at module top) so
 # the module can be imported for linting outside Cura.
@@ -987,6 +994,355 @@ def read_print_information() -> dict:
         "total_length_m": float(sum(lengths)) if lengths else 0.0,
         "print_time_seconds": _duration_to_seconds(getattr(pi, "currentPrintTime", None)),
     }
+
+
+# --- Tier 2: settings (read / meta / write / reset) -----------------------
+
+def _global_stack():  # noqa: ANN202
+    """The active machine's global container stack, or raise if none.
+
+    5.10-5.13: CuraApplication.getGlobalContainerStack() -> GlobalStack | None.
+    """
+    stack = get_application().getGlobalContainerStack()
+    if stack is None:
+        raise UnknownSetting("No active machine; load/select a printer first.")
+    return stack
+
+
+def _setting_exists(stack, key: str) -> bool:  # noqa: ANN001
+    """Whether ``key`` is a real setting in the active machine definition.
+
+    5.10-5.13: DefinitionContainer.findDefinitions(key=...) is the authoritative
+    existence check (returns [] for unknown keys).
+    """
+    try:
+        return bool(stack.definition.findDefinitions(key=key))
+    except Exception:  # noqa: BLE001 - fall back to the stack's key set
+        try:
+            return key in stack.getAllKeys()
+        except Exception:  # noqa: BLE001
+            return False
+
+
+def _coerce_value(setting_type: str, value):  # noqa: ANN001, ANN201
+    """Parse ``value`` to the setting's declared type, or raise InvalidSettingValue.
+
+    Pure (no Cura) so it is unit-testable. Handles the common scalar types; other
+    types pass through unchanged (best effort).
+    """
+    try:
+        if setting_type == "float":
+            return float(value)
+        if setting_type == "int":
+            return int(float(value)) if isinstance(value, str) else int(value)
+        if setting_type == "bool":
+            if isinstance(value, bool):
+                return value
+            if isinstance(value, str):
+                return value.strip().lower() in ("true", "1", "yes", "on")
+            return bool(value)
+        if setting_type in ("str", "enum"):
+            return str(value)
+    except (TypeError, ValueError) as exc:
+        raise InvalidSettingValue(
+            f"Value {value!r} is not a valid {setting_type}."
+        ) from exc
+    return value
+
+
+def _extruder_stack_or_none():  # noqa: ANN202
+    """The active extruder stack, or None if unavailable (e.g. outside Cura).
+
+    5.10-5.13: cura.Settings.ExtruderManager.getInstance().getActiveExtruderStack().
+    """
+    try:
+        from cura.Settings.ExtruderManager import ExtruderManager
+
+        return ExtruderManager.getInstance().getActiveExtruderStack()
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _target_stack(stack, key: str, *, require_extruder: bool = False):  # noqa: ANN001, ANN202
+    """Where a setting's value lives: the active extruder for per-extruder keys,
+    else the global stack. Cura marks many per-extruder settings (infill, speeds,
+    temperatures) ``settable_per_extruder`` even on single-extruder machines, so
+    those must be read/written on the extruder stack — the same place the UI uses.
+    """
+    if bool(stack.getProperty(key, "settable_per_extruder")):
+        extruder = _extruder_stack_or_none()
+        if extruder is not None:
+            return extruder
+        if require_extruder:
+            raise PerExtruderUnsupported(
+                f"'{key}' is a per-extruder setting and no active extruder is available."
+            )
+    return stack
+
+
+def get_setting(key: str) -> dict:
+    """Resolved value of a setting + its type/unit. Raise UnknownSetting if absent.
+
+    5.10-5.13: getProperty(key, "value"/"type"/"unit"); per-extruder values are
+    read from the active extruder stack. The value is resolved through the whole
+    container stack (definition→quality→material→user).
+    """
+    stack = _global_stack()
+    if not _setting_exists(stack, key):
+        raise UnknownSetting(f"Unknown setting '{key}'.")
+    target = _target_stack(stack, key)
+    return {
+        "key": key,
+        "value": target.getProperty(key, "value"),
+        "type": stack.getProperty(key, "type"),
+        "unit": stack.getProperty(key, "unit"),
+    }
+
+
+def set_setting(key: str, value) -> dict:  # noqa: ANN001
+    """Write a GLOBAL setting as a user override, validated, then re-read it.
+
+    Validates (a) the key exists, (b) the value parses to the setting's type,
+    (c) numeric values fall within minimum_value/maximum_value, (d) enum values are
+    in the options. Per-extruder settings are refused (v1 handles global only).
+
+    5.10-5.13: GlobalStack.setProperty(key, "value", v) routes to the userChanges
+    container (CuraContainerStack hardcodes the UserChanges index) — the same place
+    the Cura UI writes overrides. After the write Cura auto-triggers a re-slice.
+    """
+    stack = _global_stack()
+    if not _setting_exists(stack, key):
+        raise UnknownSetting(f"Unknown setting '{key}'.")
+
+    setting_type = stack.getProperty(key, "type")
+    coerced = _coerce_value(setting_type, value)
+
+    if isinstance(coerced, (int, float)) and not isinstance(coerced, bool):
+        minimum = stack.getProperty(key, "minimum_value")
+        maximum = stack.getProperty(key, "maximum_value")
+        if minimum is not None and coerced < float(minimum):
+            raise InvalidSettingValue(f"{key}={coerced} is below the minimum {minimum}.")
+        if maximum is not None and coerced > float(maximum):
+            raise InvalidSettingValue(f"{key}={coerced} is above the maximum {maximum}.")
+
+    options = stack.getProperty(key, "options")
+    if options and coerced not in options:
+        raise InvalidSettingValue(
+            f"{key}={coerced!r} is not a valid option. Allowed: {sorted(options)}."
+        )
+
+    # Per-extruder settings must be written to the active extruder's user changes.
+    target = _target_stack(stack, key, require_extruder=True)
+    target.setProperty(key, "value", coerced)
+    return {"key": key, "value": target.getProperty(key, "value"), "type": setting_type}
+
+
+def reset_setting(key: str) -> dict:
+    """Remove a user override for ``key``, reverting to the profile value.
+
+    5.10-5.13: GlobalStack.userChanges.removeInstance(key) (no-op if no override).
+    """
+    stack = _global_stack()
+    if not _setting_exists(stack, key):
+        raise UnknownSetting(f"Unknown setting '{key}'.")
+    target = _target_stack(stack, key)
+    target.userChanges.removeInstance(key)
+    return {
+        "key": key,
+        "value": target.getProperty(key, "value"),
+        "type": stack.getProperty(key, "type"),
+    }
+
+
+def set_supports(enabled: bool, placement: str | None) -> dict:
+    """Toggle support generation and (optionally) its placement.
+
+    5.10-5.13: global settings ``support_enable`` (bool) and ``support_type``
+    (enum: buildplate|everywhere). Routed through the validated set_setting.
+    """
+    result = set_setting("support_enable", bool(enabled))
+    placement_value = None
+    if enabled and placement:
+        placement_value = set_setting("support_type", placement)["value"]
+    return {"support_enable": result["value"], "support_type": placement_value}
+
+
+def set_quality_preset(preset: str) -> dict:
+    """Switch the active quality preset (draft|normal|fine|…).
+
+    5.10-5.13: cura.Machines.ContainerTree.getInstance().getCurrentQualityGroups()
+    -> {quality_type: QualityGroup}; MachineManager.setQualityGroupByQualityType.
+    """
+    from cura.Machines.ContainerTree import ContainerTree
+
+    groups = ContainerTree.getInstance().getCurrentQualityGroups()
+    available = {qt: g for qt, g in groups.items() if getattr(g, "is_available", True)}
+
+    # Match the preset against the quality_type ("standard") OR the display name
+    # ("Standard") — machines name presets differently (Ender 3 S1 uses
+    # low/standard/super/adaptive, not draft/normal/fine).
+    chosen = None
+    for quality_type, group in available.items():
+        display = (group.getName() or "").lower()
+        if preset in (quality_type.lower(), display):
+            chosen = quality_type
+            break
+    if chosen is None:
+        options = sorted(f"{qt} ({g.getName()})" for qt, g in available.items())
+        raise UnknownProfile(f"Unknown quality '{preset}'. Available: {options}.")
+
+    get_application().getMachineManager().setQualityGroupByQualityType(chosen)
+    return {"key": "quality", "value": chosen, "type": "enum"}
+
+
+# --- Tier 2: profiles (machines / materials) ------------------------------
+
+def list_machines() -> dict:
+    """All configured printers + which is active.
+
+    5.10-5.13: CuraContainerRegistry.findContainerStacks(type="machine"); each has
+    getId()/getName(); active is CuraApplication.getGlobalContainerStack().
+    """
+    from cura.Settings.CuraContainerRegistry import CuraContainerRegistry
+
+    active = get_application().getGlobalContainerStack()
+    active_id = active.getId() if active is not None else None
+    stacks = CuraContainerRegistry.getInstance().findContainerStacks(type="machine")
+    machines = [
+        {"id": s.getId(), "name": s.getName(), "active": s.getId() == active_id} for s in stacks
+    ]
+    return {"machines": machines}
+
+
+def switch_machine(name: str) -> dict:
+    """Activate a configured printer by id or display name.
+
+    5.10-5.13: MachineManager.setActiveMachine(stack_id).
+    """
+    from cura.Settings.CuraContainerRegistry import CuraContainerRegistry
+
+    stacks = CuraContainerRegistry.getInstance().findContainerStacks(type="machine")
+    match = next((s for s in stacks if name in (s.getId(), s.getName())), None)
+    if match is None:
+        raise UnknownProfile(f"No printer '{name}'. Use list_machines to see the options.")
+    get_application().getMachineManager().setActiveMachine(match.getId())
+    return {"id": match.getId(), "name": match.getName(), "active": True}
+
+
+def _active_extruder_variant_materials():  # noqa: ANN202
+    """(variant_node.materials dict, active_base_file) for the first extruder."""
+    stack = get_application().getGlobalContainerStack()
+    if stack is None:
+        raise UnknownProfile("No active machine.")
+    from cura.Machines.ContainerTree import ContainerTree
+
+    extruder = stack.extruderList[0]
+    nozzle = extruder.variant.getName()
+    machine_def_id = stack.definition.getId()
+    machine_node = ContainerTree.getInstance().machines[machine_def_id]
+    variant_node = machine_node.variants[nozzle]
+    active_material = extruder.material
+    active_base = active_material.getMetaDataEntry("base_file", active_material.getId())
+    return variant_node.materials, active_base
+
+
+def list_materials() -> dict:
+    """Materials compatible with the active machine + nozzle, with the active one.
+
+    5.10-5.13: ContainerTree machine->variant->materials (Dict[base_file ->
+    MaterialNode]); names/brands via CuraContainerRegistry metadata.
+    """
+    from cura.Settings.CuraContainerRegistry import CuraContainerRegistry
+
+    materials_dict, active_base = _active_extruder_variant_materials()
+    registry = CuraContainerRegistry.getInstance()
+
+    out: list[dict] = []
+    for base_file, node in materials_dict.items():
+        name, brand = base_file, None
+        container_id = getattr(node, "container_id", None)
+        if container_id is not None:
+            md = registry.findContainersMetadata(id=container_id)
+            if md:
+                name = md[0].get("name", base_file)
+                brand = md[0].get("brand")
+        out.append(
+            {"id": base_file, "name": name, "brand": brand, "active": base_file == active_base}
+        )
+    return {"materials": out, "active": active_base}
+
+
+def switch_material(name: str) -> dict:
+    """Set the active extruder's material by id (base_file) or display name.
+
+    5.10-5.13: MachineManager.setMaterialById(position, root_material_id).
+    """
+    from cura.Settings.CuraContainerRegistry import CuraContainerRegistry
+
+    materials_dict, _ = _active_extruder_variant_materials()
+    registry = CuraContainerRegistry.getInstance()
+
+    target_base = None
+    target_name = name
+    for base_file, node in materials_dict.items():
+        display = base_file
+        container_id = getattr(node, "container_id", None)
+        if container_id is not None:
+            md = registry.findContainersMetadata(id=container_id)
+            if md:
+                display = md[0].get("name", base_file)
+        if name in (base_file, display):
+            target_base, target_name = base_file, display
+            break
+    if target_base is None:
+        raise UnknownProfile(f"No material '{name}' for this machine. Use list_materials.")
+
+    ok = get_application().getMachineManager().setMaterialById("0", target_base)
+    if not ok:
+        raise UnknownProfile(f"Cura rejected material '{name}'.")
+    return {"id": target_base, "name": target_name, "active": True}
+
+
+# --- Tier 2: export G-code ------------------------------------------------
+
+def export_gcode(path: str) -> dict:
+    """Write the last successful slice's G-code to ``path``. Thread: main.
+
+    Gated on a DONE slice AND non-empty scene.gcode_dict for the active plate, so
+    we never write an empty/stale file. Path is already sandbox-validated.
+    5.10-5.13: app.getMeshFileHandler().getWriterByMimeType("text/x-gcode") is the
+    GCodeWriter; it writes the whole scene's gcode (ignores nodes), TextMode only.
+    """
+    app = get_application()
+    from UM.Backend.Backend import BackendState
+
+    scene = app.getController().getScene()
+    active_bp = app.getMultiBuildPlateModel().activeBuildPlate
+    gcode_dict = getattr(scene, "gcode_dict", {})
+    gcode_list = gcode_dict.get(active_bp) if isinstance(gcode_dict, dict) else None
+
+    backend = app.getBackend()
+    state = getattr(backend, "_backend_state", None)
+    if state != BackendState.Done or not gcode_list:
+        raise ExportFailed("No completed slice to export. Run slice (reach DONE) first.")
+
+    writer = app.getMeshFileHandler().getWriterByMimeType("text/x-gcode")
+    if writer is None:
+        raise ExportFailed("No G-code writer available.")
+
+    from UM.Mesh.MeshWriter import MeshWriter
+
+    try:
+        with open(path, "w", encoding="utf-8", newline="") as stream:
+            ok = writer.write(stream, None, MeshWriter.OutputMode.TextMode)
+    except OSError as exc:
+        raise ExportFailed(f"Could not write '{path}': {exc}") from exc
+    if not ok:
+        raise ExportFailed("The G-code writer failed.")
+
+    # gcode_dict entries are multi-line chunks; count actual newlines.
+    line_count = sum(str(chunk).count("\n") for chunk in gcode_list)
+    return {"path": path, "lines": line_count}
 
 
 def get_plugin_version() -> str:

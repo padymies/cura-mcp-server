@@ -43,6 +43,30 @@ class ExportFailed(CuraMcpError):
     code = "export_failed"
 
 
+class UnknownSetting(CuraMcpError):
+    """The setting key does not exist in the active machine definition."""
+
+    code = "unknown_setting"
+
+
+class InvalidSettingValue(CuraMcpError):
+    """The value is the wrong type or outside the setting's allowed range/options."""
+
+    code = "invalid_setting_value"
+
+
+class PerExtruderUnsupported(CuraMcpError):
+    """The setting is per-extruder; v1 of the settings API handles global only."""
+
+    code = "per_extruder_unsupported"
+
+
+class UnknownProfile(CuraMcpError):
+    """No machine/material/quality profile matches the given name."""
+
+    code = "unknown_profile"
+
+
 class LoadFailed(CuraMcpError):
     """The model load did not complete (e.g. timed out or the reader failed)."""
 
@@ -76,6 +100,10 @@ _BY_CODE = {
         InvalidPath,
         NodeNotFound,
         ExportFailed,
+        UnknownSetting,
+        InvalidSettingValue,
+        PerExtruderUnsupported,
+        UnknownProfile,
         LoadFailed,
         SliceFailed,
         SliceTimeout,

@@ -12,9 +12,12 @@ from ..operations import (
     clear,
     estimate,
     export,
+    export_gcode,
     load,
     machine,
     models,
+    profiles,
+    settings,
     snapshot,
     status,
     transform,
@@ -53,6 +56,23 @@ _HANDLERS: dict[str, Callable[[dict], Any]] = {
     "export_model": lambda p: export.export_model(
         p.get("target", "all"), p["path"], p.get("format", "stl")
     ),
+    # Tier 2 — settings
+    "get_setting": lambda p: settings.get_setting(p["key"]),
+    "set_setting": lambda p: settings.set_setting(p["key"], p["value"]),
+    "reset_setting": lambda p: settings.reset_setting(p["key"]),
+    # Tier 2 — curated writers
+    "set_layer_height": lambda p: settings.set_layer_height(p["mm"]),
+    "set_infill_density": lambda p: settings.set_infill_density(p["percent"]),
+    "set_supports": lambda p: settings.set_supports(p["enabled"], p.get("type")),
+    "set_adhesion": lambda p: settings.set_adhesion(p["type"]),
+    "set_quality": lambda p: settings.set_quality(p["preset"]),
+    # Tier 2 — profiles
+    "list_machines": lambda p: profiles.list_machines(),
+    "switch_machine": lambda p: profiles.switch_machine(p["name"]),
+    "list_materials": lambda p: profiles.list_materials(),
+    "switch_material": lambda p: profiles.switch_material(p["name"]),
+    # Tier 2 — export gcode
+    "export_gcode": lambda p: export_gcode.export_gcode(p["path"]),
 }
 
 
