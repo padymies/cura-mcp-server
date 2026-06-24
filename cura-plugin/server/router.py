@@ -13,10 +13,12 @@ from ..operations import (
     estimate,
     export,
     export_gcode,
+    group,
     load,
     machine,
     models,
     profiles,
+    project,
     settings,
     snapshot,
     status,
@@ -73,6 +75,26 @@ _HANDLERS: dict[str, Callable[[dict], Any]] = {
     "switch_material": lambda p: profiles.switch_material(p["name"]),
     # Tier 2 — export gcode
     "export_gcode": lambda p: export_gcode.export_gcode(p["path"]),
+    # Tier 3 (M1) — settings introspection + bulk reset
+    "get_all_user_settings": lambda p: settings.get_all_user_settings(),
+    "reset_all_settings": lambda p: settings.reset_all_settings(),
+    # Tier 3 (M1) — nozzle variants
+    "list_variants": lambda p: profiles.list_variants(),
+    "switch_variant": lambda p: profiles.switch_variant(p["name"]),
+    # Tier 3 (M2) — group / ungroup / merge
+    "group_models": lambda p: group.group_models(p["node_ids"]),
+    "ungroup_model": lambda p: group.ungroup_model(p["node_id"]),
+    "merge_models": lambda p: group.merge_models(p["node_ids"]),
+    # Tier 3 (M3) — project save / open
+    "save_project": lambda p: project.save_project(p["path"]),
+    "open_project": lambda p: project.open_project(
+        p["path"], p.get("confirm", False), p.get("mode", "create_new")
+    ),
+    # Tier 3 (M4) — per-object settings & mesh types
+    "set_model_setting": lambda p: settings.set_model_setting(p["node_id"], p["key"], p["value"]),
+    "reset_model_setting": lambda p: settings.reset_model_setting(p["node_id"], p["key"]),
+    "set_mesh_type": lambda p: settings.set_mesh_type(p["node_id"], p["type"]),
+    "get_model_settings": lambda p: settings.get_model_settings(p["node_id"]),
 }
 
 

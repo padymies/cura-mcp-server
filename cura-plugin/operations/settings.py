@@ -19,6 +19,34 @@ def reset_setting(key: str) -> dict:
     return run_on_main_thread(lambda: cura_api.reset_setting(key))
 
 
+# --- Tier 3 (M1): introspection / bulk reset -----------------------------
+
+def get_all_user_settings() -> dict:
+    return run_on_main_thread(cura_api.get_all_user_settings)
+
+
+def reset_all_settings() -> dict:
+    return run_on_main_thread(cura_api.reset_all_settings)
+
+
+# --- Tier 3 (M4): per-object settings & mesh types -----------------------
+
+def set_model_setting(node_id: str, key: str, value: Any) -> dict:
+    return run_on_main_thread(lambda: cura_api.set_model_setting(node_id, key, value))
+
+
+def reset_model_setting(node_id: str, key: str) -> dict:
+    return run_on_main_thread(lambda: cura_api.reset_model_setting(node_id, key))
+
+
+def set_mesh_type(node_id: str, mesh_type: str) -> dict:
+    return run_on_main_thread(lambda: cura_api.set_mesh_type(node_id, mesh_type))
+
+
+def get_model_settings(node_id: str) -> dict:
+    return run_on_main_thread(lambda: cura_api.get_model_settings(node_id))
+
+
 # --- curated writers (validate the argument, then delegate to set_setting) -
 
 def set_layer_height(mm: float) -> dict:

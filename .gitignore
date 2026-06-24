@@ -2,6 +2,10 @@
 # Internal build specs: local reference for the implementation agent, never shipped.
 specs/
 docs/
+# Local dogfooding instrumentation (Layer-1 logger + local bridge entrypoint): kept
+# on disk for local use, never published. The public cura_mcp package has no
+# reference to it (see cura_dogfood/bridge.py).
+cura_dogfood/
 # Local auth token written by the Cura plugin at runtime (see SECURITY).
 *.cura-mcp-token
 .cura-mcp/
@@ -32,6 +36,7 @@ htmlcov/
 Thumbs.db
 
 # --- Logs / local artifacts ---
+logs/
 *.log
 *.gcode
 *.stl

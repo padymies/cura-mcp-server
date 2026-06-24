@@ -8,7 +8,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 # --- shared ---------------------------------------------------------------
 
@@ -209,3 +209,149 @@ class ProfileSwitchOutput(BaseModel):
 class ExportGcodeOutput(BaseModel):
     path: str = Field(..., description="Absolute path the G-code was written to")
     lines: int = Field(..., description="Number of G-code lines written")
+
+
+# --- Tier 3 (M1): settings introspection / bulk reset ---------------------
+
+class UserSetting(BaseModel):
+    """One user override (something changed from the profile baseline)."""
+
+    key: str
+    value: Any = Field(default=None, description="The overridden value")
+    type: str | None = None
+
+
+class AllUserSettingsOutput(BaseModel):
+    """Every user override, split by scope (global vs per-extruder)."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    global_: list[UserSetting] = Field(
+        default_factory=list, alias="global", description="Global (machine-wide) overrides"
+    )
+    extruders: list[list[UserSetting]] = Field(
+        default_factory=list, description="Per-extruder overrides, one list per extruder"
+    )
+
+
+class ResetAllSettingsOutput(BaseModel):
+    """Count of overrides removed when reverting to the profile baseline."""
+
+    global_removed: int = Field(..., description="Global overrides removed")
+    extruders_removed: list[int] = Field(
+        default_factory=list, description="Overrides removed per extruder"
+    )
+    total_removed: int
+
+
+# --- Tier 3 (M1): nozzle variants -----------------------------------------
+
+class VariantEntry(BaseModel):
+    id: str
+    name: str
+    active: bool = False
+
+
+class ListVariantsOutput(BaseModel):
+    variants: list[VariantEntry]
+    active: str | None = Field(default=None, description="Active variant (nozzle) name")
+
+
+class SwitchVariantOutput(BaseModel):
+    id: str
+    name: str
+    active: bool
+    material: str | None = Field(default=None, description="Resulting active material id")
+    material_changed: bool = Field(
+        default=False, description="True if the nozzle change swapped the active material"
+    )
+    note: str | None = Field(default=None, description="Human-readable material-compatibility note")
+
+
+# --- Tier 3 (M2): group / ungroup / merge ---------------------------------
+
+class GroupOutput(BaseModel):
+    """Result of a group/merge: the new group node id and its member ids."""
+
+    node_id: str = Field(..., description="Id of the resulting group node")
+    members: list[str] = Field(default_factory=list, description="Member model ids")
+
+
+class UngroupOutput(BaseModel):
+    """Result of an ungroup: the dissolved group id and its freed member ids."""
+
+    node_id: str = Field(..., description="Id of the group that was dissolved")
+    members: list[str] = Field(default_factory=list, description="Freed member model ids")
+
+
+# --- Tier 3 (M3): project save / open -------------------------------------
+
+class SaveProjectOutput(BaseModel):
+    path: str = Field(..., description="Absolute path the project 3MF was written to")
+    models: int = Field(..., description="Number of models saved into the project")
+
+
+class OpenProjectOutput(BaseModel):
+    """Preview or result of a (destructive) project open.
+
+    With ``applied=False`` nothing changed — it is a dry-run PREVIEW (the default,
+    when ``confirm`` was not set): ``machine``/``models`` are null and ``note``
+    describes what *would* happen plus the warnings. With ``applied=True`` the
+    workspace was actually opened.
+    """
+
+    applied: bool = Field(
+        ..., description="False = preview only (nothing changed); True = workspace opened"
+    )
+    mode: str = Field(..., description="create_new | replace_active")
+    destructive: bool = Field(
+        ..., description="True when proceeding discards/overwrites workspace state with no undo"
+    )
+    previous_machine: str | None = Field(
+        default=None, description="Active machine before opening (the current one)"
+    )
+    previous_models: int = Field(..., description="Model count before opening (the current plate)")
+    machine: str | None = Field(
+        default=None, description="Active machine after opening (null on a preview)"
+    )
+    models: int | None = Field(
+        default=None, description="Model count after opening (null on a preview)"
+    )
+    note: str | None = Field(
+        default=None, description="What happened, or on a preview what would happen + warnings"
+    )
+
+
+# --- Tier 3 (M4): per-object settings & mesh types ------------------------
+
+class ModelSettingOutput(BaseModel):
+    """Result of a per-object set/reset on one model."""
+
+    node_id: str
+    key: str
+    value: Any = Field(default=None, description="Resolved per-object value")
+    type: str | None = None
+    removed: bool | None = Field(default=None, description="Set by reset_model_setting")
+
+
+class MeshTypeOutput(BaseModel):
+    node_id: str
+    mesh_type: str = Field(
+        ..., description="normal | support_mesh | anti_overhang_mesh | infill_mesh | cutting_mesh"
+    )
+    changed: bool = Field(default=False, description="False if it was already that type")
+
+
+class ModelSettingEntry(BaseModel):
+    key: str
+    value: Any = None
+
+
+class ModelSettingsOutput(BaseModel):
+    """A model's per-object overrides + its current mesh type."""
+
+    node_id: str
+    mesh_type: str = Field(..., description="Current mesh role ('normal' if none)")
+    settings: list[ModelSettingEntry] = Field(
+        default_factory=list, description="Per-object overrides (excludes the mesh-type booleans)"
+    )
