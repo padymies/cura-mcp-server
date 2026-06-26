@@ -9,7 +9,7 @@ description = "Local MCP server that drives the UltiMaker Cura slicer. No hub, n
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-authors = [{ name = "padicodeai-cloud" }]
+authors = [{ name = "padymies", email = "padymies@gmail.com" }]
 keywords = ["mcp", "cura", "3d-printing", "slicer", "model-context-protocol"]
 dependencies = [
     "mcp>=1.2.0",

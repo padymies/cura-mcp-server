@@ -40,5 +40,5 @@ Cura plugin (`cura-plugin/`), talking over loopback HTTP.
 ### Validated
 - Live against UltiMaker Cura 5.10.0 and 5.13.0.
 
-[Unreleased]: https://github.com/padicodeai-cloud/cura-mcp-server/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/padicodeai-cloud/cura-mcp-server/releases/tag/v0.1.0
+[Unreleased]: https://github.com/padymies/cura-mcp-server/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/padymies/cura-mcp-server/releases/tag/v0.1.0
