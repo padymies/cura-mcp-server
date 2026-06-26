@@ -81,6 +81,9 @@ _HANDLERS: dict[str, Callable[[dict], Any]] = {
     # Tier 3 (M1) — nozzle variants
     "list_variants": lambda p: profiles.list_variants(),
     "switch_variant": lambda p: profiles.switch_variant(p["name"]),
+    # v0.5 — quality profile reads (set_quality already exists; completes set/list/get)
+    "list_quality_profiles": lambda p: profiles.list_quality_profiles(),
+    "get_quality": lambda p: profiles.get_quality(),
     # Tier 3 (M2) — group / ungroup / merge
     "group_models": lambda p: group.group_models(p["node_ids"]),
     "ungroup_model": lambda p: group.ungroup_model(p["node_id"]),

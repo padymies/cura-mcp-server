@@ -22,12 +22,14 @@ from .tools import (
     get_all_user_settings,
     get_machine_info,
     get_model_settings,
+    get_quality,
     get_setting,
     get_snapshot,
     group_models,
     list_machines,
     list_materials,
     list_models,
+    list_quality_profiles,
     list_variants,
     load_model,
     merge_models,
@@ -108,6 +110,9 @@ def build_server(mcp_factory: Callable[[str], FastMCP] = FastMCP) -> FastMCP:
         switch_machine,
         list_materials,
         switch_material,
+        # Tier 2 — quality profile reads (set_quality already registered above)
+        list_quality_profiles,
+        get_quality,
         # Tier 2 — export gcode
         export_gcode,
         # Tier 3 (M1) — settings introspection + variants

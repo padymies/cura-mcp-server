@@ -29,3 +29,13 @@ def list_variants() -> dict:
 
 def switch_variant(name: str) -> dict:
     return run_on_main_thread(lambda: cura_api.switch_variant(name))
+
+
+# --- v0.5: quality profile reads (completes set/list/get symmetry) --------
+
+def list_quality_profiles() -> dict:
+    return run_on_main_thread(cura_api.list_quality_profiles)
+
+
+def get_quality() -> dict:
+    return run_on_main_thread(cura_api.get_quality)

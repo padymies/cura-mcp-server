@@ -6,6 +6,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.0]
+
+### Added
+- **Quality profile reads** (`list_quality_profiles`, `get_quality`) — completes
+  the set/list/get symmetry alongside `set_quality`. `list_quality_profiles`
+  returns the presets the active machine offers (`quality_type` + display name,
+  marking the active one); `get_quality` returns the active `quality_type` and a
+  note when a custom profile is layered on top.
+
 ## [0.1.0]
 
 First public release. Two components: the MCP bridge (`mcp-server/`) and the
@@ -40,5 +49,6 @@ Cura plugin (`cura-plugin/`), talking over loopback HTTP.
 ### Validated
 - Live against UltiMaker Cura 5.10.0 and 5.13.0.
 
-[Unreleased]: https://github.com/padymies/cura-mcp-server/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/padymies/cura-mcp-server/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/padymies/cura-mcp-server/compare/v0.1.0...v0.5.0
 [0.1.0]: https://github.com/padymies/cura-mcp-server/releases/tag/v0.1.0

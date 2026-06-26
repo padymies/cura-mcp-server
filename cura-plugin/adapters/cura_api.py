@@ -1200,16 +1200,26 @@ def set_supports(enabled: bool, placement: str | None) -> dict:
     return {"support_enable": result["value"], "support_type": placement_value}
 
 
-def set_quality_preset(preset: str) -> dict:
-    """Switch the active quality preset (draft|normal|fine|…).
+def _available_quality_groups() -> dict:
+    """Available quality groups for the active machine: ``{quality_type: QualityGroup}``.
 
-    5.10-5.13: cura.Machines.ContainerTree.getInstance().getCurrentQualityGroups()
-    -> {quality_type: QualityGroup}; MachineManager.setQualityGroupByQualityType.
+    5.10-5.13: ContainerTree.getInstance().getCurrentQualityGroups() returns every
+    group; a machine only offers some (Ender 3 S1 -> low/standard/super/adaptive),
+    so filter by ``is_available``. Single source for set/list/get of quality.
     """
     from cura.Machines.ContainerTree import ContainerTree
 
     groups = ContainerTree.getInstance().getCurrentQualityGroups()
-    available = {qt: g for qt, g in groups.items() if getattr(g, "is_available", True)}
+    return {qt: g for qt, g in groups.items() if getattr(g, "is_available", True)}
+
+
+def set_quality_preset(preset: str) -> dict:
+    """Switch the active quality preset (draft|normal|fine|…).
+
+    5.10-5.13: groups via _available_quality_groups();
+    MachineManager.setQualityGroupByQualityType.
+    """
+    available = _available_quality_groups()
 
     # Match the preset against the quality_type ("standard") OR the display name
     # ("Standard") — machines name presets differently (Ender 3 S1 uses
@@ -1227,6 +1237,38 @@ def set_quality_preset(preset: str) -> dict:
     with _suppress_profile_override_dialog():
         get_application().getMachineManager().setQualityGroupByQualityType(chosen)
     return {"key": "quality", "value": chosen, "type": "enum"}
+
+
+def list_quality_profiles() -> dict:
+    """Available quality presets for the active machine + which one is active.
+
+    5.10-5.13: groups via _available_quality_groups(); the active quality_type is
+    MachineManager.activeQualityType (same key activeQualityGroup() resolves on).
+    """
+    available = _available_quality_groups()
+    active_qt = get_application().getMachineManager().activeQualityType
+    profiles = [
+        {"quality_type": qt, "name": g.getName(), "active": qt == active_qt}
+        for qt, g in available.items()
+    ]
+    return {"profiles": profiles}
+
+
+def get_quality() -> dict:
+    """The active quality preset (quality_type), with a note when a custom profile
+    is layered on top.
+
+    5.10-5.13: MachineManager.activeQualityType; hasCustomQuality +
+    activeQualityOrQualityChangesName flag/describe an active quality_changes.
+    """
+    machine_manager = get_application().getMachineManager()
+    result = {"key": "quality", "value": machine_manager.activeQualityType, "type": "enum"}
+    if machine_manager.hasCustomQuality:
+        result["note"] = (
+            f"A custom profile ('{machine_manager.activeQualityOrQualityChangesName}') is "
+            f"active on top of the '{machine_manager.activeQualityType}' quality type."
+        )
+    return result
 
 
 # --- Tier 2: profiles (machines / materials) ------------------------------

@@ -167,6 +167,10 @@ class SettingOutput(BaseModel):
     value: Any = Field(default=None, description="Resolved value (float/int/bool/str)")
     type: str | None = None
     unit: str | None = None
+    note: str | None = Field(
+        default=None,
+        description="Optional context, e.g. a custom quality profile layered on top.",
+    )
 
 
 class SupportsOutput(BaseModel):
@@ -266,6 +270,18 @@ class SwitchVariantOutput(BaseModel):
         default=False, description="True if the nozzle change swapped the active material"
     )
     note: str | None = Field(default=None, description="Human-readable material-compatibility note")
+
+
+# --- v0.5: quality profile reads ------------------------------------------
+
+class QualityProfileEntry(BaseModel):
+    quality_type: str = Field(..., description="Stable key, e.g. 'standard' (use with set_quality)")
+    name: str = Field(..., description="Display name, e.g. 'Standard'")
+    active: bool = False
+
+
+class QualityProfilesOutput(BaseModel):
+    profiles: list[QualityProfileEntry]
 
 
 # --- Tier 3 (M2): group / ungroup / merge ---------------------------------

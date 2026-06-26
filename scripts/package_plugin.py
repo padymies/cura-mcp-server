@@ -20,9 +20,9 @@ ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "cura-plugin"
 
 # Paths (relative to cura-plugin/) that must NOT ship in the installable plugin.
-EXCLUDE_DIRS = {"tests", "__pycache__"}
+EXCLUDE_DIRS = {"tests", "__pycache__", "archived_logs", "latest_logs"}
 EXCLUDE_FILES = {"pytest.ini"}
-EXCLUDE_SUFFIXES = {".pyc", ".pyo"}
+EXCLUDE_SUFFIXES = {".pyc", ".pyo", ".log"}
 
 
 def _included(rel: Path) -> bool:
