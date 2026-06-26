@@ -1,5 +1,10 @@
 # cura-mcp-server
 
+[![PyPI](https://img.shields.io/pypi/v/cura-mcp)](https://pypi.org/project/cura-mcp/)
+[![Python](https://img.shields.io/pypi/pyversions/cura-mcp)](https://pypi.org/project/cura-mcp/)
+[![CI](https://github.com/padymies/cura-mcp-server/actions/workflows/ci.yml/badge.svg)](https://github.com/padymies/cura-mcp-server/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 **Fully local. No hub. No telemetry.** An open-source [MCP](https://modelcontextprotocol.io)
 server that lets an AI client (Claude Desktop, Claude Code, …) drive the
 [UltiMaker Cura](https://ultimaker.com/software/ultimaker-cura/) slicer
@@ -9,12 +14,25 @@ print time — without any third-party server in the loop.
 > Ask: *"load this STL, rotate it 45° on X, slice it, and tell me how much
 > filament it uses"* — and get a real answer from your own Cura install.
 
+## Quickstart
+
+1. **Plugin** — download `CuraMcp-<version>.zip` from the
+   [latest release](https://github.com/padymies/cura-mcp-server/releases/latest),
+   extract it into Cura's plugins folder, and restart Cura.
+2. **Bridge** — install [`uv`](https://docs.astral.sh/uv/getting-started/installation/)
+   (a single binary; no Python setup needed).
+3. **Client** — add the `cura` server to your MCP client and point it at
+   `uvx cura-mcp`.
+
+Then, with Cura open, ask your AI client: *"Load `~/models/bracket.stl`, slice
+it, and tell me filament and print time."* Full details below.
+
 ## How it works
 
 Two components in one repo, talking over loopback only:
 
 - **`mcp-server/`** — the bridge. Speaks MCP to your AI client and exposes typed
-  tools. Runs in your own Python environment.
+  tools. Launched by your MCP client via `uv` (no manual Python setup).
 - **`cura-plugin/`** — a Cura plugin (standard-library only) that runs inside
   Cura, hosts a token-authenticated local server, and is the only thing that
   touches Cura's APIs.
