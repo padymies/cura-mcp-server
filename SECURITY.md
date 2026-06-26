@@ -10,12 +10,13 @@ Controls:
 - **Per-session token**: generated at plugin start, written to a user-readable
   local file, required on every request.
 - **`Host` header allow-list** to blunt DNS-rebinding from a browser context.
-- **Path sandbox** for `load_model`: directory allow-list, traversal rejection,
-  extension allow-list (`.stl`, `.3mf`, `.obj`).
+- **Path sandbox** for file reads and writes: directory allow-list, traversal
+  rejection, extension allow-list (read: `.stl`/`.3mf`/`.obj`; write: `.stl`/
+  `.3mf`/`.gcode`/`.3mf` projects). The default allow-list is the user's home
+  directory; override it with `CURA_MCP_ALLOWED_DIRS` (OS path-separated absolute
+  paths — setting it *replaces* the default) to tighten or relocate the scope.
 - **No printer control / no arbitrary G-code** in v1.
 - **No outbound network, no telemetry** in either component.
-
-Full analysis: [`docs/security-model.md`](docs/security-model.md).
 
 ## Supported versions
 

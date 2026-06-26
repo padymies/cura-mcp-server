@@ -2,6 +2,8 @@
 # Internal build specs: local reference for the implementation agent, never shipped.
 specs/
 docs/
+# Local agent/dev context (implementation guide for the coding agent), never shipped.
+CLAUDE.md
 # Local dogfooding instrumentation (Layer-1 logger + local bridge entrypoint): kept
 # on disk for local use, never published. The public cura_mcp package has no
 # reference to it (see cura_dogfood/bridge.py).

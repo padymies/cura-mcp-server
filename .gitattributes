@@ -1,0 +1,8 @@
+# Normalize line endings: LF in the repo, native on checkout where it matters.
+* text=auto eol=lf
+
+# Treat 3D model/output artifacts as binary (never EOL-normalize or diff).
+*.stl binary
+*.3mf binary
+*.obj binary
+*.gcode binary

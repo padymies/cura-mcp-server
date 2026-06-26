@@ -31,14 +31,12 @@ CuraMcpPlugin.py     Extension lifecycle (start/stop server)
 server/              http_server.py (stdlib), auth.py (token + Host), router.py
 bridge/main_thread.py  marshal callables onto Cura's main thread
 operations/          load, transform, slice (handshake), estimate, status
-adapters/cura_api.py THE only Cura-internals touchpoint (fill from docs)
+adapters/cura_api.py THE only Cura-internals touchpoint
 ```
-
-See `../docs/hard-problems.md` and `../docs/cura-api-reference.md`.
 
 ## Validated Cura versions
 
-The full smoke test (`../docs/manual-smoke-test.md`) is green on:
+The full manual smoke test is green on:
 
 - **UltiMaker Cura 5.10.0** (plugin SDK 8)
 - **UltiMaker Cura 5.13.0** (plugin SDK 8.12.0)

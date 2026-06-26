@@ -10,4 +10,4 @@ Closes #
 - [ ] Plugin remains standard-library only
 - [ ] Cura-internal access stays in `adapters/cura_api.py`
 - [ ] `ruff`, `mypy`, `pytest` pass locally
-- [ ] `docs/` and `CHANGELOG.md` updated if behavior changed
+- [ ] `CHANGELOG.md` updated if behavior changed
