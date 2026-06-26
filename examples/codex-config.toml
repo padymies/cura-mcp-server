@@ -1,0 +1,13 @@
+# Codex MCP config — add to ~/.codex/config.toml
+[mcp_servers.cura]
+command = "uvx"
+args = ["cura-mcp"]
+startup_timeout_sec = 30
+
+[mcp_servers.cura.env]
+CURA_MCP_PORT = "8765"
+
+# NOTE: to restrict file reads/writes to specific folders, set CURA_MCP_ALLOWED_DIRS
+# in CURA's environment (not here — this env only reaches the bridge). It is read
+# by the plugin. OS path separator: ";" on Windows, ":" on Linux/macOS. See the
+# README ("Restricting file access to specific folders").

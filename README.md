@@ -56,7 +56,8 @@ step; the client config below runs it on demand.
 
 ### 3. Point your MCP client at the bridge
 
-See [`examples/claude-desktop-config.json`](examples/claude-desktop-config.json):
+**Claude Desktop / Claude Code** — see
+[`examples/claude-desktop-config.json`](examples/claude-desktop-config.json):
 
 ```json
 {
@@ -68,6 +69,19 @@ See [`examples/claude-desktop-config.json`](examples/claude-desktop-config.json)
     }
   }
 }
+```
+
+**Codex** — see [`examples/codex-config.toml`](examples/codex-config.toml); add to
+`~/.codex/config.toml`:
+
+```toml
+[mcp_servers.cura]
+command = "uvx"
+args = ["cura-mcp"]
+startup_timeout_sec = 30
+
+[mcp_servers.cura.env]
+CURA_MCP_PORT = "8765"
 ```
 
 `uvx cura-mcp` downloads (and caches) the published package and runs it. To track
@@ -96,6 +110,28 @@ connection.
 | `CURA_MCP_TIMEOUT` | `30` | bridge |
 | `CURA_MCP_SLICE_TIMEOUT` | `300` | bridge |
 | `CURA_MCP_ALLOWED_DIRS` | user home dir | plugin (filesystem sandbox) |
+
+#### Restricting file access to specific folders
+
+By default the plugin may read/write models anywhere under your home directory.
+To limit it to specific folders, set `CURA_MCP_ALLOWED_DIRS` to an
+**OS-path-separated** list of absolute paths (`;` on Windows, `:` on Linux/macOS).
+Setting it **replaces** the default — only the listed folders are allowed.
+
+This variable is read by the **plugin**, so it must be set in **Cura's own
+environment** (the MCP client `env` only reaches the bridge, which doesn't use
+it). Set it before launching Cura, e.g.:
+
+```bat
+:: Windows — or set it as a user env var (System Properties → Environment Variables)
+set "CURA_MCP_ALLOWED_DIRS=C:\Users\me\3D Models;C:\Users\me\Downloads"
+"C:\Program Files\UltiMaker Cura 5.x\Cura.exe"
+```
+
+```bash
+# Linux / macOS
+CURA_MCP_ALLOWED_DIRS="$HOME/3D Models:$HOME/Downloads" cura
+```
 
 ## Try this
 
