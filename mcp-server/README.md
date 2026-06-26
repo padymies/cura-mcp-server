@@ -4,16 +4,18 @@ The MCP server. Speaks MCP to your AI client and forwards each tool call to the
 Cura plugin over loopback HTTP. Knows nothing about Cura internals — it is pure
 transport, schemas, and error mapping.
 
+## Run (users)
+
+Users don't install this directly — their MCP client launches it via
+[`uv`](https://docs.astral.sh/uv/): `uvx cura-mcp` (see the top-level
+[`README`](../README.md#install)). `uv` brings its own Python, so no separate
+Python install is required.
+
 ## Install (dev)
 
 ```bash
 cd mcp-server
 pip install -e ".[dev]"
-```
-
-## Run
-
-```bash
 python -m cura_mcp.server
 ```
 

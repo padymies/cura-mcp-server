@@ -29,8 +29,9 @@ versions noted in `cura-plugin/plugin.json`).
 
 ## Install
 
-Two pieces: the **plugin** (inside Cura) and the **bridge** (in your own Python
-environment, launched by your MCP client).
+Two pieces: the **plugin** (inside Cura) and the **bridge** (a small program your
+MCP client launches). You do **not** need to install or manage Python yourself —
+[`uv`](https://docs.astral.sh/uv/) runs the bridge and brings its own Python.
 
 ### 1. Install the Cura plugin
 
@@ -46,12 +47,12 @@ Restart Cura. On startup the plugin writes a per-session token to
 Check the binding with `netstat -an | findstr 8765` (Windows) or
 `ss -ltn | grep 8765` (Linux) — the address must be `127.0.0.1`, not `0.0.0.0`.
 
-### 2. Install the bridge
+### 2. Install uv
 
-```bash
-cd mcp-server
-pip install -e .
-```
+Install `uv` (a single binary, no system Python required) by following
+[the official instructions](https://docs.astral.sh/uv/getting-started/installation/).
+That's the only prerequisite for the bridge — there is no separate "install"
+step; the client config below runs it on demand.
 
 ### 3. Point your MCP client at the bridge
 
@@ -61,16 +62,29 @@ See [`examples/claude-desktop-config.json`](examples/claude-desktop-config.json)
 {
   "mcpServers": {
     "cura": {
-      "command": "python",
-      "args": ["-m", "cura_mcp.server"],
+      "command": "uvx",
+      "args": ["cura-mcp"],
       "env": { "CURA_MCP_PORT": "8765" }
     }
   }
 }
 ```
 
+`uvx cura-mcp` downloads (and caches) the published package and runs it. To track
+the latest `main` instead of a release, point `uvx` at the repo:
+
+```json
+{ "command": "uvx",
+  "args": ["--from",
+           "git+https://github.com/padymies/cura-mcp-server.git#subdirectory=mcp-server",
+           "cura-mcp"] }
+```
+
 Restart the client. With Cura open, ask it to `get_status` first to confirm the
 connection.
+
+> **From source (development):** `cd mcp-server && pip install -e ".[dev]"`, then
+> use `"command": "python", "args": ["-m", "cura_mcp.server"]`.
 
 ### Configuration (environment variables)
 

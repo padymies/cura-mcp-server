@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "cura": {
-      "command": "python",
-      "args": ["-m", "cura_mcp.server"],
+      "command": "uvx",
+      "args": ["cura-mcp"],
       "env": {
         "CURA_MCP_PORT": "8765"
       }

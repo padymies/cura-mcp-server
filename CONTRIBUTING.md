@@ -37,3 +37,21 @@ code or have the right to submit it under the MIT license.
 - Small modules, one responsibility each. Match the structure described in the
   component READMEs ([`mcp-server/`](mcp-server/README.md),
   [`cura-plugin/`](cura-plugin/README.md)).
+
+## Releasing (maintainers)
+
+The bridge is published to PyPI as `cura-mcp` so users can run it with
+`uvx cura-mcp`. Publishing uses **PyPI Trusted Publishing** (OIDC) — no API token
+is stored in the repo.
+
+One-time setup on PyPI (Account → Publishing): add a *pending* trusted publisher
+for project `cura-mcp`, owner `padymies`, repo `cura-mcp-server`, workflow
+`release.yml`, environment `pypi`.
+
+To cut a release:
+
+1. Bump the version in `mcp-server/pyproject.toml` (and `cura-plugin/plugin.json`
+   if the plugin changed) and update `CHANGELOG.md`.
+2. Tag and push: `git tag vX.Y.Z && git push --tags`.
+3. Publish a GitHub Release for that tag. The `Release (PyPI)` workflow then
+   builds and uploads the wheel/sdist. Nothing publishes on a normal push.
