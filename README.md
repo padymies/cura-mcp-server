@@ -35,12 +35,20 @@ MCP client launches). You do **not** need to install or manage Python yourself �
 
 ### 1. Install the Cura plugin
 
-Copy the [`cura-plugin/`](cura-plugin/) directory into Cura's plugins folder,
-**renamed to `CuraMcp`** (the folder must be a valid Python package name):
+Download **`CuraMcp-<version>.zip`** from the
+[latest release](https://github.com/padymies/cura-mcp-server/releases/latest) and
+extract it into Cura's plugins folder. The zip already contains a correctly named
+`CuraMcp/` folder, so there is nothing to rename:
 
-- **Windows:** `%APPDATA%\cura\<version>\plugins\CuraMcp\`
-- **Linux:** `~/.local/share/cura/<version>/plugins/CuraMcp/`
-- **macOS:** `~/Library/Application Support/cura/<version>/plugins/CuraMcp/`
+- **Windows:** `%APPDATA%\cura\<version>\plugins\`
+- **Linux:** `~/.local/share/cura/<version>/plugins/`
+- **macOS:** `~/Library/Application Support/cura/<version>/plugins/`
+
+You should end up with `…/plugins/CuraMcp/plugin.json`.
+
+> **From source instead:** run `python scripts/package_plugin.py` and extract the
+> generated `dist/CuraMcp-*.zip` (or copy [`cura-plugin/`](cura-plugin/) manually,
+> renaming it to `CuraMcp` — the folder must be a valid Python package name).
 
 Restart Cura. On startup the plugin writes a per-session token to
 `~/.cura-mcp/token` and starts a loopback-only server on `127.0.0.1:8765`.

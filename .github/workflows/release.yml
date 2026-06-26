@@ -1,8 +1,8 @@
-name: Release (PyPI)
+name: Release
 
-# Publishes the bridge to PyPI when you publish a GitHub Release (the explicit
-# human gate — nothing is published on a normal push or PR). Uses PyPI Trusted
-# Publishing (OIDC): no API token is stored in the repo.
+# On a published GitHub Release (the explicit human gate — nothing runs on a
+# normal push or PR): publish the bridge to PyPI (Trusted Publishing / OIDC, no
+# stored token) and attach the installable Cura plugin zip to the release.
 on:
   release:
     types: [published]
@@ -29,3 +29,17 @@ jobs:
         run: uv build
       - name: Publish to PyPI (trusted publishing)
         run: uv publish
+
+  plugin-zip:
+    name: Attach Cura plugin zip
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # upload the release asset
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build plugin zip
+        run: python scripts/package_plugin.py
+      - name: Attach to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" dist/CuraMcp-*.zip --clobber

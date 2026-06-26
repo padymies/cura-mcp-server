@@ -53,5 +53,7 @@ To cut a release:
 1. Bump the version in `mcp-server/pyproject.toml` (and `cura-plugin/plugin.json`
    if the plugin changed) and update `CHANGELOG.md`.
 2. Tag and push: `git tag vX.Y.Z && git push --tags`.
-3. Publish a GitHub Release for that tag. The `Release (PyPI)` workflow then
-   builds and uploads the wheel/sdist. Nothing publishes on a normal push.
+3. Publish a GitHub Release for that tag. The `Release` workflow then publishes
+   the bridge to PyPI **and** attaches the installable plugin zip
+   (`CuraMcp-<version>.zip`, built by `scripts/package_plugin.py`) to the release.
+   Nothing publishes on a normal push.
